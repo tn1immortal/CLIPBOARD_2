@@ -43,7 +43,8 @@
             Upload: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>,
             ChevronLeft: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>,
             ChevronRight: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>,
-            X: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            X: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
+            List: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
         };
 
         const ITEMS_PER_PAGE = 20; // Tăng lên 20 item
@@ -260,8 +261,16 @@
 
                     {/* Body */}
                     <main className="max-w-5xl mx-auto px-4 py-4">
-                        <div className="flex justify-between items-center mb-3 gap-4 text-xs text-slate-500">
-                            <p>Hiển thị <b>{filteredItems.length}</b> kết quả</p>
+                        <div className="flex justify-between items-center mb-3 gap-4 text-xs">
+                            {/* Nút/Badge hiển thị số lượng */}
+                            <div className="flex items-center gap-2">
+                                <div className="inline-flex items-center px-2.5 py-1 rounded-full bg-slate-200 text-slate-700 font-bold shadow-sm cursor-default select-none border border-slate-300" title="Tổng số thẻ đang hiển thị">
+                                    <Icons.List />
+                                    <span className="ml-1.5">{filteredItems.length}</span>
+                                </div>
+                                <span className="text-slate-400 hidden sm:inline">thẻ đang xem</span>
+                            </div>
+
                             <div className="flex space-x-2">
                                 <label className="cursor-pointer inline-flex items-center px-2 py-1 border border-slate-300 bg-white hover:bg-slate-50 rounded text-xs font-medium text-slate-600">
                                     <Icons.Upload /> <span className="ml-1 hidden sm:inline">Nhập</span>
