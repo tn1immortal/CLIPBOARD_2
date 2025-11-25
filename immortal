@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kho Clipboard List View</title>
+    <title>Kho Clipboard Compact List</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- React & ReactDOM -->
@@ -16,11 +16,12 @@
         body {
             background-color: #f8fafc;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: 14px; /* Giảm font base */
         }
         /* Custom scrollbar */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
@@ -30,22 +31,22 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
-        // --- Icons Components ---
+        // --- Icons Components (Size giảm nhẹ xuống 14-16px) ---
         const Icons = {
-            Search: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>,
-            Plus: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>,
-            Copy: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>,
-            Check: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>,
-            Trash: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>,
-            Edit: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>,
-            Download: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>,
-            Upload: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>,
-            ChevronLeft: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>,
-            ChevronRight: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>,
-            X: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            Search: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>,
+            Plus: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>,
+            Copy: () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>,
+            Check: () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>,
+            Trash: () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>,
+            Edit: () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>,
+            Download: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>,
+            Upload: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>,
+            ChevronLeft: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>,
+            ChevronRight: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>,
+            X: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
         };
 
-        const ITEMS_PER_PAGE = 10; // Giảm số lượng item mỗi trang vì dạng list dài hơn
+        const ITEMS_PER_PAGE = 20; // Tăng lên 20 item
 
         function App() {
             // State
@@ -67,11 +68,22 @@
                         setItems(JSON.parse(savedItems));
                     } catch (e) { console.error(e); }
                 } else {
-                    const initialData = [
-                        { id: 1, title: 'Email Công việc Chính', content: 'myname.work@company.com', tags: 'email, work', date: Date.now() },
-                        { id: 2, title: 'Code CSS Flexbox Centering (Đoạn này tiêu đề rất dài để test hiển thị full không bị cắt)', content: 'display: flex; justify-content: center; align-items: center;', tags: 'code, css', date: Date.now() },
-                        { id: 3, title: 'Mã màu Brand', content: '#3B82F6', tags: 'design', date: Date.now() },
+                    const sampleTags = [
+                        'công việc, ưu tiên',
+                        'cá nhân, todo',
+                        'code, snippet, js',
+                        'tài khoản, login',
+                        'design, màu sắc, reference',
+                        'email, khách hàng'
                     ];
+                    
+                    const initialData = Array.from({ length: 25 }, (_, i) => ({
+                        id: i, 
+                        title: `Item mẫu ${i + 1} - Dòng này để test độ dài`, 
+                        content: `Nội dung demo ${i + 1} cần copy nhanh`, 
+                        tags: sampleTags[i % sampleTags.length], 
+                        date: Date.now() 
+                    }));
                     setItems(initialData);
                 }
             }, []);
@@ -208,109 +220,120 @@
             useEffect(() => setCurrentPage(1), [searchQuery]);
 
             return (
-                <div className="min-h-screen bg-slate-50 text-slate-800 selection:bg-blue-100 pb-10">
+                <div className="min-h-screen bg-slate-50 text-slate-800 selection:bg-blue-100 pb-8 text-sm">
                     {/* Toast */}
                     {notification && (
-                        <div className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-xl text-white animate-bounce ${notification.type === 'error' ? 'bg-red-500' : 'bg-emerald-600'}`}>
+                        <div className={`fixed top-4 right-4 z-50 px-4 py-2 rounded shadow-lg text-white text-xs animate-bounce ${notification.type === 'error' ? 'bg-red-500' : 'bg-emerald-600'}`}>
                             {notification.msg}
                         </div>
                     )}
 
-                    {/* Header */}
-                    <header className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
-                        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
+                    {/* Header - Compact */}
+                    <header className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm h-12">
+                        <div className="max-w-5xl mx-auto px-4 h-full flex items-center justify-between gap-3">
                             <div className="flex items-center gap-2 flex-shrink-0">
-                                <div className="bg-blue-600 text-white p-1.5 rounded-lg">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                                <div className="bg-blue-600 text-white p-1 rounded">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
                                 </div>
-                                <h1 className="text-xl font-bold text-blue-700 hidden sm:block">Kho Clipboard</h1>
+                                <h1 className="text-base font-bold text-blue-700 hidden sm:block">Kho Clipboard</h1>
                             </div>
 
-                            <div className="flex-1 max-w-xl relative">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                            <div className="flex-1 max-w-lg relative">
+                                <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
                                     <Icons.Search />
                                 </div>
                                 <input
                                     type="text"
-                                    placeholder="Tìm kiếm..."
-                                    className="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                                    placeholder="Tìm nhanh..."
+                                    className="block w-full pl-8 pr-3 py-1.5 text-sm border border-slate-300 rounded bg-slate-50 focus:bg-white focus:ring-1 focus:ring-blue-500 focus:outline-none transition-all"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
                             </div>
 
-                            <button onClick={() => openModal()} className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-all flex-shrink-0">
+                            <button onClick={() => openModal()} className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 shadow-sm transition-all flex-shrink-0 text-xs font-medium">
                                 <Icons.Plus />
-                                <span className="ml-2 hidden sm:inline">Thêm</span>
+                                <span className="ml-1 hidden sm:inline">Thêm</span>
                             </button>
                         </div>
                     </header>
 
                     {/* Body */}
-                    <main className="max-w-5xl mx-auto px-4 py-8">
-                        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-                            <p className="text-slate-500 text-sm">Hiển thị <b>{filteredItems.length}</b> kết quả</p>
+                    <main className="max-w-5xl mx-auto px-4 py-4">
+                        <div className="flex justify-between items-center mb-3 gap-4 text-xs text-slate-500">
+                            <p>Hiển thị <b>{filteredItems.length}</b> kết quả</p>
                             <div className="flex space-x-2">
-                                <label className="cursor-pointer inline-flex items-center px-3 py-1.5 border border-slate-300 bg-white hover:bg-slate-50 rounded text-xs font-medium text-slate-700">
-                                    <Icons.Upload /> <span className="ml-1">Nhập JSON</span>
+                                <label className="cursor-pointer inline-flex items-center px-2 py-1 border border-slate-300 bg-white hover:bg-slate-50 rounded text-xs font-medium text-slate-600">
+                                    <Icons.Upload /> <span className="ml-1 hidden sm:inline">Nhập</span>
                                     <input type="file" className="hidden" accept=".json" onChange={importData} />
                                 </label>
-                                <button onClick={exportData} className="inline-flex items-center px-3 py-1.5 border border-slate-300 bg-white hover:bg-slate-50 rounded text-xs font-medium text-slate-700">
-                                    <Icons.Download /> <span className="ml-1">Xuất Backup</span>
+                                <button onClick={exportData} className="inline-flex items-center px-2 py-1 border border-slate-300 bg-white hover:bg-slate-50 rounded text-xs font-medium text-slate-600">
+                                    <Icons.Download /> <span className="ml-1 hidden sm:inline">Xuất</span>
                                 </button>
                             </div>
                         </div>
 
                         {filteredItems.length === 0 ? (
-                            <div className="text-center py-20 bg-white rounded-xl border border-dashed border-slate-300">
-                                <p className="text-slate-500">Chưa có dữ liệu nào.</p>
+                            <div className="text-center py-10 bg-white rounded border border-dashed border-slate-300">
+                                <p className="text-slate-400 text-xs">Chưa có dữ liệu nào.</p>
                             </div>
                         ) : (
-                            // Changed: Grid Layout -> Flex List Layout
-                            <div className="flex flex-col gap-3">
+                            // Ultra Compact List
+                            <div className="flex flex-col gap-1.5">
                                 {currentItems.map((item) => (
-                                    <div key={item.id} className="bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-all p-3 sm:p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center group">
+                                    <div key={item.id} className="bg-white rounded border border-slate-200 shadow-sm hover:border-blue-300 hover:shadow transition-all p-2 flex items-center gap-3 group h-[42px]">
                                         
                                         {/* Left Side: Info */}
-                                        <div className="flex-1 min-w-0 w-full">
-                                            <div className="flex items-center gap-2 flex-wrap mb-1">
-                                                {/* Title: No truncate to show full content */}
-                                                <h3 className="font-semibold text-slate-800 text-base leading-snug">{item.title}</h3>
-                                                {item.tags && (
-                                                    <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-blue-50 text-blue-600 border border-blue-100 shrink-0">
-                                                        {item.tags.split(',')[0]}
-                                                    </span>
-                                                )}
+                                        <div className="flex-1 min-w-0 flex items-center gap-3">
+                                            {/* Title */}
+                                            <div className="w-1/4 min-w-[120px] max-w-[200px]">
+                                                 <h3 className="font-medium text-slate-800 text-xs truncate" title={item.title}>{item.title}</h3>
                                             </div>
-                                            {/* Content: Truncated for compact view, mono font for code/data clarity */}
-                                            <p className="text-sm text-slate-500 font-mono truncate bg-slate-50 px-2 py-1 rounded inline-block max-w-full">
-                                                {item.content}
-                                            </p>
+                                            
+                                            {/* Content Preview */}
+                                            <div className="flex-1 min-w-0">
+                                                 <p className="text-xs text-slate-500 font-mono truncate opacity-90" title={item.content}>
+                                                    {item.content}
+                                                </p>
+                                            </div>
+
+                                            {/* Tags (Displayed as list) */}
+                                            <div className="hidden sm:flex items-center gap-1 shrink-0">
+                                                {item.tags && item.tags.split(',').slice(0, 3).map((tag, idx) => (
+                                                    <span key={idx} className="px-1.5 py-0.5 rounded text-[9px] uppercase font-bold bg-slate-100 text-slate-600 border border-slate-200 shrink-0 whitespace-nowrap">
+                                                        {tag.trim()}
+                                                    </span>
+                                                ))}
+                                            </div>
                                         </div>
 
                                         {/* Right Side: Actions */}
-                                        <div className="flex items-center gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-100">
-                                            {/* Edit/Delete Group - Visible on hover on Desktop, always visible on Mobile but subtle */}
-                                            <div className="flex items-center mr-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
-                                                <button onClick={() => openModal(item)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Sửa">
+                                        <div className="flex items-center gap-1 shrink-0">
+                                            {/* Edit/Delete Group - Hover only */}
+                                            <div className="hidden group-hover:flex items-center">
+                                                <button onClick={() => openModal(item)} className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Sửa">
                                                     <Icons.Edit />
                                                 </button>
-                                                <button onClick={() => requestDelete(item.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Xóa">
+                                                <button onClick={() => requestDelete(item.id)} className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded" title="Xóa">
                                                     <Icons.Trash />
                                                 </button>
                                             </div>
 
-                                            {/* Main Action: Copy */}
+                                            {/* Vertical divider */}
+                                            <div className="hidden group-hover:block w-px h-3 bg-slate-200 mx-1"></div>
+
+                                            {/* Copy Button */}
                                             <button 
                                                 onClick={() => copyToClipboard(item.content, item.id)} 
-                                                className={`flex items-center px-3 py-1.5 text-xs font-medium rounded border shadow-sm transition-all whitespace-nowrap active:scale-95 ${
+                                                className={`flex items-center justify-center w-[24px] h-[24px] sm:w-auto sm:h-auto sm:px-2 sm:py-0.5 text-[10px] font-medium rounded border transition-all ${
                                                     copiedId === item.id 
-                                                    ? 'bg-emerald-100 text-emerald-700 border-emerald-200' 
-                                                    : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50 hover:border-slate-400'
+                                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                                                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
                                                 }`}
+                                                title="Sao chép"
                                             >
                                                 {copiedId === item.id ? <Icons.Check /> : <Icons.Copy />} 
-                                                <span className="ml-1.5">{copiedId === item.id ? 'Đã chép' : 'Sao chép'}</span>
+                                                <span className="ml-1 hidden sm:inline">{copiedId === item.id ? 'Đã xong' : 'Copy'}</span>
                                             </button>
                                         </div>
                                     </div>
@@ -319,40 +342,40 @@
                         )}
 
                         {pageCount > 1 && (
-                            <div className="mt-8 flex justify-center items-center space-x-4">
-                                <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="p-2 border rounded hover:bg-slate-50 disabled:opacity-50"><Icons.ChevronLeft /></button>
-                                <span className="text-sm font-medium text-slate-700">Trang {currentPage} / {pageCount}</span>
-                                <button onClick={() => setCurrentPage(p => Math.min(pageCount, p + 1))} disabled={currentPage === pageCount} className="p-2 border rounded hover:bg-slate-50 disabled:opacity-50"><Icons.ChevronRight /></button>
+                            <div className="mt-4 flex justify-center items-center space-x-2 text-xs">
+                                <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="p-1 border rounded hover:bg-slate-50 disabled:opacity-50"><Icons.ChevronLeft /></button>
+                                <span className="font-medium text-slate-600">Trang {currentPage} / {pageCount}</span>
+                                <button onClick={() => setCurrentPage(p => Math.min(pageCount, p + 1))} disabled={currentPage === pageCount} className="p-1 border rounded hover:bg-slate-50 disabled:opacity-50"><Icons.ChevronRight /></button>
                             </div>
                         )}
                     </main>
 
                     {/* Modal Form */}
                     {isModalOpen && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-sm">
-                            <div className="bg-white rounded-lg shadow-xl w-full max-w-lg overflow-hidden animate-fade-in-up">
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-[2px]">
+                            <div className="bg-white rounded shadow-xl w-full max-w-lg overflow-hidden animate-fade-in-up">
                                 <form onSubmit={handleSave}>
-                                    <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                                        <h3 className="text-lg font-medium text-slate-900">{editingItem ? 'Sửa Clipboard' : 'Thêm Mới'}</h3>
+                                    <div className="px-4 py-3 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                                        <h3 className="text-base font-medium text-slate-900">{editingItem ? 'Sửa' : 'Thêm Mới'}</h3>
                                         <button type="button" onClick={closeModal} className="text-slate-400 hover:text-slate-600"><Icons.X /></button>
                                     </div>
-                                    <div className="p-6 space-y-4">
+                                    <div className="p-4 space-y-3">
                                         <div>
-                                            <label className="block text-sm font-medium text-slate-700 mb-1">Tiêu đề</label>
-                                            <input type="text" required className="w-full border-slate-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2 px-3 border" placeholder="Ví dụ: Link Zalo" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
+                                            <label className="block text-xs font-medium text-slate-700 mb-1">Tiêu đề</label>
+                                            <input type="text" required className="w-full border-slate-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500 py-1.5 px-3 border text-sm" placeholder="Ví dụ: Link Zalo" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-slate-700 mb-1">Nội dung</label>
-                                            <textarea required rows={4} className="w-full border-slate-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 font-mono text-sm py-2 px-3 border" placeholder="Nội dung cần copy..." value={formData.content} onChange={e => setFormData({...formData, content: e.target.value})} />
+                                            <label className="block text-xs font-medium text-slate-700 mb-1">Nội dung</label>
+                                            <textarea required rows={4} className="w-full border-slate-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500 font-mono text-sm py-1.5 px-3 border" placeholder="Nội dung cần copy..." value={formData.content} onChange={e => setFormData({...formData, content: e.target.value})} />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-slate-700 mb-1">Thẻ (Tag)</label>
-                                            <input type="text" className="w-full border-slate-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2 px-3 border" placeholder="công việc, cá nhân..." value={formData.tags} onChange={e => setFormData({...formData, tags: e.target.value})} />
+                                            <label className="block text-xs font-medium text-slate-700 mb-1">Thẻ (Tag)</label>
+                                            <input type="text" className="w-full border-slate-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500 py-1.5 px-3 border text-sm" placeholder="công việc, cá nhân..." value={formData.tags} onChange={e => setFormData({...formData, tags: e.target.value})} />
                                         </div>
                                     </div>
-                                    <div className="bg-slate-50 px-6 py-4 flex flex-row-reverse gap-3">
-                                        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm text-sm font-medium">{editingItem ? 'Cập nhật' : 'Lưu lại'}</button>
-                                        <button type="button" onClick={closeModal} className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-md hover:bg-slate-50 shadow-sm text-sm font-medium">Hủy</button>
+                                    <div className="bg-slate-50 px-4 py-3 flex flex-row-reverse gap-2">
+                                        <button type="submit" className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 shadow-sm text-xs font-medium">{editingItem ? 'Cập nhật' : 'Lưu lại'}</button>
+                                        <button type="button" onClick={closeModal} className="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 rounded hover:bg-slate-50 shadow-sm text-xs font-medium">Hủy</button>
                                     </div>
                                 </form>
                             </div>
@@ -361,18 +384,15 @@
 
                     {/* Modal Confirm Delete */}
                     {deleteId && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-sm">
-                            <div className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden">
-                                <div className="p-6 text-center">
-                                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4 text-red-600">
-                                        <Icons.Trash />
-                                    </div>
-                                    <h3 className="text-lg font-medium text-slate-900">Xác nhận xóa?</h3>
-                                    <p className="text-sm text-slate-500 mt-2">Hành động này không thể hoàn tác.</p>
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-[2px]">
+                            <div className="bg-white rounded shadow-xl w-full max-w-xs overflow-hidden">
+                                <div className="p-4 text-center">
+                                    <h3 className="text-base font-medium text-slate-900 mb-1">Xác nhận xóa?</h3>
+                                    <p className="text-xs text-slate-500">Hành động này không thể hoàn tác.</p>
                                 </div>
-                                <div className="bg-slate-50 px-6 py-4 flex flex-row-reverse gap-3">
-                                    <button onClick={confirmDelete} className="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 shadow-sm text-sm font-medium">Xóa ngay</button>
-                                    <button onClick={() => setDeleteId(null)} className="w-full px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-md hover:bg-slate-50 shadow-sm text-sm font-medium">Hủy</button>
+                                <div className="bg-slate-50 px-4 py-3 flex flex-row-reverse gap-2">
+                                    <button onClick={confirmDelete} className="w-full px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 shadow-sm text-xs font-medium">Xóa</button>
+                                    <button onClick={() => setDeleteId(null)} className="w-full px-3 py-1.5 bg-white border border-slate-300 text-slate-700 rounded hover:bg-slate-50 shadow-sm text-xs font-medium">Hủy</button>
                                 </div>
                             </div>
                         </div>
