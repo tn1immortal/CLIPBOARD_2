@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kho Clipboard - Chỉnh sửa trực tiếp</title>
+    <title>Kho Clipboard - Tìm kiếm theo Tag</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- React & ReactDOM -->
@@ -24,15 +24,81 @@
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-        /* Ẩn outline mặc định của input khi focus để custom bằng tailwind */
         input:focus { outline: none; }
+        textarea:focus { outline: none; }
+        select:focus { outline: none; }
+        
+        /* Style cho ContentEditable */
+        .rich-input {
+            outline: none;
+            min-height: 20px;
+            white-space: pre-wrap; 
+            word-break: break-word;
+            overflow: hidden;
+            display: block;
+        }
+        .rich-input:focus {
+            background-color: #eff6ff; /* blue-50 */
+            border-radius: 4px;
+            box-shadow: inset 0 0 0 1px #bfdbfe; /* blue-200 */
+            padding: 2px 4px;
+            margin: -2px -4px;
+        }
+        .rich-input[placeholder]:empty:before {
+            content: attr(placeholder);
+            color: #94a3b8;
+        }
+        
+        .rich-input a {
+            color: #2563eb;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        .rich-input a:hover {
+            color: #1d4ed8;
+        }
+
+        .single-line {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useMemo } = React;
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        // --- Helper: Strip HTML tags to get plain text ---
+        const stripHtml = (html) => {
+            const tmp = document.createElement("DIV");
+            tmp.innerHTML = html;
+            return tmp.textContent || tmp.innerText || "";
+        }
+
+        // --- Global Helper: Insert Link ---
+        const insertLink = (e, callback) => {
+            e.preventDefault(); 
+            const selection = window.getSelection();
+            if (!selection.rangeCount) return;
+            const range = selection.getRangeAt(0);
+            const url = prompt("Nhập đường dẫn (URL):", "https://");
+            
+            selection.removeAllRanges();
+            selection.addRange(range);
+
+            if (url) {
+                document.execCommand("createLink", false, url);
+                if (callback) {
+                    let node = range.commonAncestorContainer;
+                    if (node.nodeType === 3) node = node.parentNode;
+                    const editor = node.closest('[contenteditable]');
+                    if (editor) callback(editor.innerHTML);
+                }
+            }
+        };
 
         // --- Icons Components ---
         const Icons = {
@@ -46,14 +112,159 @@
             Upload: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>,
             ChevronLeft: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>,
             ChevronRight: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>,
+            ChevronDown: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>,
             X: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
-            List: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+            List: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>,
+            Link: () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>,
+            Tag: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94 .94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/></svg>
         };
 
         const ITEMS_PER_PAGE = 20;
 
+        // --- Common Components ---
+        const RichTextEditor = ({ html, onChange, placeholder, className }) => {
+            const contentEditableRef = useRef(null);
+            useEffect(() => {
+                if (contentEditableRef.current && contentEditableRef.current.innerHTML !== html) {
+                    contentEditableRef.current.innerHTML = html;
+                }
+            }, []);
+            const handleBlur = (e) => {
+                const newHtml = e.target.innerHTML;
+                if (onChange && newHtml !== html) onChange(newHtml);
+            };
+            return (
+                <div
+                    ref={contentEditableRef}
+                    className={`rich-input ${className}`}
+                    contentEditable
+                    onBlur={handleBlur}
+                    placeholder={placeholder}
+                    dangerouslySetInnerHTML={{__html: html}} 
+                />
+            );
+        };
+
+        const AutoResizeInput = ({ value, onChange, placeholder, className }) => {
+            const textareaRef = useRef(null);
+            useEffect(() => {
+                if (textareaRef.current) {
+                    textareaRef.current.style.height = 'auto';
+                    textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+                }
+            }, [value]);
+            return (
+                <textarea
+                    ref={textareaRef}
+                    rows={1}
+                    className={`w-full bg-transparent border-none p-0 resize-none overflow-hidden ${className}`}
+                    value={value}
+                    onChange={onChange}
+                    placeholder={placeholder}
+                    onFocus={(e) => {
+                        e.target.style.backgroundColor = '#eff6ff';
+                        e.target.style.borderRadius = '4px';
+                        e.target.style.padding = '2px 4px';
+                        e.target.style.margin = '-2px -4px';
+                        e.target.style.boxShadow = 'inset 0 0 0 1px #bfdbfe';
+                    }}
+                    onBlur={(e) => {
+                         e.target.style.backgroundColor = 'transparent';
+                         e.target.style.borderRadius = '0';
+                         e.target.style.padding = '0';
+                         e.target.style.margin = '0';
+                         e.target.style.boxShadow = 'none';
+                    }}
+                />
+            );
+        };
+
+        // --- Clipboard Item ---
+        const ClipboardItem = ({ item, handleInlineUpdate, requestDelete, copyToClipboard, copiedId }) => {
+            const [isExpanded, setIsExpanded] = useState(true);
+
+            return (
+                <div className="bg-white rounded border border-slate-200 shadow-sm hover:border-blue-300 hover:shadow transition-all p-3 group">
+                    <div className="flex items-start gap-2">
+                        <button 
+                            onClick={() => setIsExpanded(!isExpanded)}
+                            className="mt-0.5 p-0.5 text-slate-400 hover:text-slate-600 rounded hover:bg-slate-100 transition-colors shrink-0"
+                            title={isExpanded ? "Thu gọn" : "Mở rộng"}
+                        >
+                            {isExpanded ? <Icons.ChevronDown /> : <Icons.ChevronRight />}
+                        </button>
+
+                        <div className="flex-1 min-w-0 flex flex-col sm:flex-row items-start sm:gap-4 gap-1">
+                            <div className="w-full sm:w-1/4 sm:min-w-[120px] sm:max-w-[200px]">
+                                <AutoResizeInput
+                                    className="font-medium text-slate-800 text-xs"
+                                    value={item.title}
+                                    onChange={(e) => handleInlineUpdate(item.id, 'title', e.target.value)}
+                                    placeholder="Nhập tiêu đề..."
+                                />
+                            </div>
+                            
+                            {isExpanded ? (
+                                <>
+                                    <div className="flex-1 min-w-0 w-full relative group/editor">
+                                        <RichTextEditor
+                                            html={item.content}
+                                            onChange={(newHtml) => handleInlineUpdate(item.id, 'content', newHtml)}
+                                            placeholder="Nội dung..."
+                                            className="text-xs text-slate-500 font-mono w-full break-words pr-6"
+                                        />
+                                        <button 
+                                            onMouseDown={(e) => insertLink(e, (newHtml) => handleInlineUpdate(item.id, 'content', newHtml))}
+                                            className="absolute right-0 top-0 p-1 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded opacity-0 group-hover/editor:opacity-100 transition-all z-10"
+                                            title="Chèn Link"
+                                        >
+                                            <Icons.Link />
+                                        </button>
+                                    </div>
+                                    <div className="w-full sm:w-[120px] shrink-0 mt-1 sm:mt-0">
+                                        <AutoResizeInput
+                                            className="text-[10px] uppercase font-bold text-slate-600 placeholder:normal-case placeholder:font-normal bg-slate-50 rounded px-1"
+                                            value={item.tags || ''}
+                                            onChange={(e) => handleInlineUpdate(item.id, 'tags', e.target.value)}
+                                            placeholder="+ Thẻ"
+                                        />
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="flex-1 min-w-0 w-full flex items-center cursor-pointer opacity-60 hover:opacity-100 transition-opacity" onClick={() => setIsExpanded(true)}>
+                                    <p className="text-xs text-slate-400 truncate select-none">
+                                        {stripHtml(item.content) || "(Không có nội dung)"}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0 mt-0.5">
+                            <div className="hidden group-hover:flex items-center">
+                                <button onClick={() => requestDelete(item.id)} className="p-1 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Xóa">
+                                    <Icons.Trash />
+                                </button>
+                            </div>
+                            <div className="hidden group-hover:block w-px h-3 bg-slate-200 mx-1"></div>
+                            <button 
+                                onClick={() => copyToClipboard(item.content, item.id)} 
+                                className={`flex items-center justify-center w-[24px] h-[24px] sm:w-auto sm:h-auto sm:px-2 sm:py-0.5 text-[10px] font-medium rounded border transition-all ${
+                                    copiedId === item.id 
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                                }`}
+                                title="Sao chép"
+                            >
+                                {copiedId === item.id ? <Icons.Check /> : <Icons.Copy />} 
+                                <span className="ml-1 hidden sm:inline">{copiedId === item.id ? 'Đã xong' : 'Copy'}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         function App() {
-            // State
             const [items, setItems] = useState([]);
             const [searchQuery, setSearchQuery] = useState('');
             const [isModalOpen, setIsModalOpen] = useState(false);
@@ -61,9 +272,8 @@
             const [copiedId, setCopiedId] = useState(null);
             const [currentPage, setCurrentPage] = useState(1);
             const [notification, setNotification] = useState(null);
-            const [formData, setFormData] = useState({ title: '', content: '', tags: '' }); // For modal new item
+            const [formData, setFormData] = useState({ title: '', content: '', tags: '' });
 
-            // Load LocalStorage
             useEffect(() => {
                 const savedItems = localStorage.getItem('clipboard_items');
                 if (savedItems) {
@@ -71,37 +281,34 @@
                         setItems(JSON.parse(savedItems));
                     } catch (e) { console.error(e); }
                 } else {
-                    const sampleTags = [
-                        'công việc, ưu tiên',
-                        'cá nhân, todo',
-                        'code, snippet, js',
-                        'tài khoản, login',
-                        'design, màu sắc, reference',
-                        'email, khách hàng'
+                    const initialData = [
+                        { id: 1, title: 'Ví dụ Link', content: 'Truy cập <a href="https://google.com">Google</a> ngay', tags: 'demo', date: Date.now() },
+                        { id: 2, title: 'Hướng dẫn', content: 'Bôi đen văn bản và bấm icon Link để chèn liên kết', tags: 'tip', date: Date.now() }
                     ];
-                    const initialData = Array.from({ length: 25 }, (_, i) => ({
-                        id: i, 
-                        title: `Item mẫu ${i + 1}`, 
-                        content: `Nội dung demo ${i + 1} cần copy nhanh`, 
-                        tags: sampleTags[i % sampleTags.length], 
-                        date: Date.now() 
-                    }));
                     setItems(initialData);
                 }
             }, []);
 
-            // Save LocalStorage
             useEffect(() => {
                 localStorage.setItem('clipboard_items', JSON.stringify(items));
             }, [items]);
 
-            // Notification System
+            // --- Lấy danh sách Tag duy nhất ---
+            const allTags = useMemo(() => {
+                const tags = new Set();
+                items.forEach(item => {
+                    if(item.tags) {
+                        item.tags.split(',').forEach(t => tags.add(t.trim()));
+                    }
+                });
+                return Array.from(tags).filter(t => t).sort();
+            }, [items]);
+
             const showNotification = (msg, type = 'success') => {
                 setNotification({ msg, type });
                 setTimeout(() => setNotification(null), 3000);
             };
 
-            // INLINE UPDATE HANDLER
             const handleInlineUpdate = (id, field, value) => {
                 setItems(prevItems => 
                     prevItems.map(item => 
@@ -110,10 +317,9 @@
                 );
             };
 
-            // Add New Item (via Modal)
             const handleAdd = (e) => {
                 e.preventDefault();
-                if (!formData.content.trim()) return;
+                if (!stripHtml(formData.content).trim() && !formData.content.includes('<img')) return;
                 const newItem = { id: Date.now(), ...formData, date: Date.now() };
                 setItems([newItem, ...items]);
                 showNotification('Đã thêm mới!');
@@ -129,41 +335,60 @@
                 }
             };
 
-            const copyToClipboard = (text, id) => {
+            const copyToClipboard = async (htmlContent, id) => {
+                const plainText = stripHtml(htmlContent);
                 const handleSuccess = () => {
                     setCopiedId(id);
                     showNotification('Đã sao chép!');
                     setTimeout(() => setCopiedId(null), 2000);
                 };
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(text).then(handleSuccess).catch(() => fallbackCopy(text, id));
-                } else {
-                    fallbackCopy(text, id);
+                try {
+                    if (navigator.clipboard && navigator.clipboard.write) {
+                        const textBlob = new Blob([plainText], { type: 'text/plain' });
+                        const htmlBlob = new Blob([htmlContent], { type: 'text/html' });
+                        await navigator.clipboard.write([
+                            new ClipboardItem({ 'text/plain': textBlob, 'text/html': htmlBlob })
+                        ]);
+                        handleSuccess();
+                    } else { throw new Error('API Error'); }
+                } catch (err) {
+                    fallbackCopy(htmlContent, id);
                 }
             };
 
-            const fallbackCopy = (text, id) => {
-                const textArea = document.createElement("textarea");
-                textArea.value = text;
-                document.body.appendChild(textArea);
-                textArea.select();
+            const fallbackCopy = (htmlContent, id) => {
+                const tempDiv = document.createElement("div");
+                tempDiv.contentEditable = true;
+                tempDiv.innerHTML = htmlContent;
+                tempDiv.style.position = 'fixed';
+                tempDiv.style.left = '-9999px';
+                tempDiv.style.whiteSpace = 'pre-wrap'; 
+                document.body.appendChild(tempDiv);
+                
+                const range = document.createRange();
+                range.selectNodeContents(tempDiv);
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+
                 try {
-                    document.execCommand('copy');
-                    setCopiedId(id);
-                    showNotification('Đã sao chép!');
-                    setTimeout(() => setCopiedId(null), 2000);
+                    if(document.execCommand('copy')) {
+                        setCopiedId(id);
+                        showNotification('Đã sao chép (Fallback)!');
+                        setTimeout(() => setCopiedId(null), 2000);
+                    }
                 } catch (err) {}
-                document.body.removeChild(textArea);
+                selection.removeAllRanges();
+                document.body.removeChild(tempDiv);
             };
 
-            // Import/Export (Giữ nguyên)
             const exportData = () => {
                 const dataStr = JSON.stringify(items, null, 2);
                 const blob = new Blob([dataStr], { type: "application/json" });
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = url;
-                link.download = `clipboard_backup_${new Date().toISOString().slice(0,10)}.json`;
+                link.download = `clipboard_backup.json`;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
@@ -188,20 +413,27 @@
                 };
             };
 
-            // Modal Controls
             const openModal = () => {
                 setFormData({ title: '', content: '', tags: '' });
                 setIsModalOpen(true);
             };
             const closeModal = () => { setIsModalOpen(false); };
 
-            // Filter & Pagination
             const filteredItems = useMemo(() => {
                 if (!searchQuery) return items;
                 const lower = searchQuery.toLowerCase();
+                
+                // --- Logic tìm kiếm theo Tag (#tag) ---
+                if (lower.startsWith('#')) {
+                     const tagSearch = lower.substring(1).trim();
+                     if (!tagSearch) return items; // Chỉ gõ # thì hiện hết
+                     return items.filter(item => item.tags && item.tags.toLowerCase().includes(tagSearch));
+                }
+
+                // Logic tìm kiếm thường
                 return items.filter(item => 
                     (item.title && item.title.toLowerCase().includes(lower)) ||
-                    (item.content && item.content.toLowerCase().includes(lower)) ||
+                    (item.content && stripHtml(item.content).toLowerCase().includes(lower)) ||
                     (item.tags && item.tags.toLowerCase().includes(lower))
                 );
             }, [items, searchQuery]);
@@ -233,17 +465,35 @@
                                 <h1 className="text-base font-bold text-blue-700 hidden sm:block">Kho Clipboard</h1>
                             </div>
 
-                            <div className="flex-1 max-w-lg relative">
+                            <div className="flex-1 max-w-lg relative group">
                                 <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
                                     <Icons.Search />
                                 </div>
                                 <input
                                     type="text"
-                                    placeholder="Tìm kiếm..."
-                                    className="block w-full pl-8 pr-3 py-1.5 text-sm border border-slate-300 rounded bg-slate-50 focus:bg-white focus:ring-1 focus:ring-blue-500 focus:outline-none transition-all"
+                                    placeholder="Tìm kiếm... (# để lọc thẻ)"
+                                    className="block w-full pl-8 pr-20 py-1.5 text-sm border border-slate-300 rounded bg-slate-50 focus:bg-white focus:ring-1 focus:ring-blue-500 focus:outline-none transition-all"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
+                                
+                                {/* Tag Filter Dropdown */}
+                                <div className="absolute inset-y-1 right-1">
+                                    <div className="relative h-full">
+                                        <select 
+                                            onChange={(e) => setSearchQuery(e.target.value ? '#' + e.target.value : '')}
+                                            className="h-full pl-2 pr-6 bg-slate-200 hover:bg-slate-300 text-slate-600 text-xs rounded border-none appearance-none focus:ring-0 cursor-pointer font-medium transition-colors w-20 truncate"
+                                            value={searchQuery.startsWith('#') ? searchQuery.substring(1) : ''}
+                                            title="Lọc theo thẻ"
+                                        >
+                                            <option value="">Tất cả</option>
+                                            {allTags.map(tag => <option key={tag} value={tag}>{tag}</option>)}
+                                        </select>
+                                        <div className="absolute inset-y-0 right-1 flex items-center pointer-events-none text-slate-500">
+                                            <Icons.ChevronDown />
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <button onClick={openModal} className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 shadow-sm transition-all flex-shrink-0 text-xs font-medium">
@@ -280,73 +530,16 @@
                                 <p className="text-slate-400 text-xs">Chưa có dữ liệu nào.</p>
                             </div>
                         ) : (
-                            <div className="flex flex-col gap-1.5">
+                            <div className="flex flex-col gap-2">
                                 {currentItems.map((item) => (
-                                    <div key={item.id} className="bg-white rounded border border-slate-200 shadow-sm hover:border-blue-300 hover:shadow transition-all p-2 flex items-center gap-3 group h-[42px]">
-                                        
-                                        {/* Left Side: Inline Editable Inputs */}
-                                        <div className="flex-1 min-w-0 flex items-center gap-2">
-                                            {/* Editable Title */}
-                                            <div className="w-1/4 min-w-[120px] max-w-[200px]">
-                                                 <input 
-                                                    type="text" 
-                                                    className="w-full bg-transparent border-none p-0 font-medium text-slate-800 text-xs truncate focus:ring-1 focus:ring-blue-200 rounded px-1 -ml-1 transition-all"
-                                                    value={item.title}
-                                                    onChange={(e) => handleInlineUpdate(item.id, 'title', e.target.value)}
-                                                    placeholder="Nhập tiêu đề..."
-                                                 />
-                                            </div>
-                                            
-                                            {/* Editable Content */}
-                                            <div className="flex-1 min-w-0">
-                                                 <input 
-                                                    type="text" 
-                                                    className="w-full bg-transparent border-none p-0 text-xs text-slate-500 font-mono truncate focus:ring-1 focus:ring-blue-200 rounded px-1 -ml-1 transition-all"
-                                                    value={item.content}
-                                                    onChange={(e) => handleInlineUpdate(item.id, 'content', e.target.value)}
-                                                    placeholder="Nội dung..."
-                                                 />
-                                            </div>
-
-                                            {/* Editable Tags */}
-                                            <div className="hidden sm:block w-[120px] shrink-0">
-                                                <input 
-                                                    type="text" 
-                                                    className="w-full bg-slate-50 border-none py-0.5 px-2 text-[10px] uppercase font-bold text-slate-600 rounded focus:ring-1 focus:ring-blue-500 placeholder:normal-case placeholder:font-normal"
-                                                    value={item.tags || ''}
-                                                    onChange={(e) => handleInlineUpdate(item.id, 'tags', e.target.value)}
-                                                    placeholder="+ Thẻ..."
-                                                />
-                                            </div>
-                                        </div>
-
-                                        {/* Right Side: Actions */}
-                                        <div className="flex items-center gap-1 shrink-0">
-                                            {/* Delete Button Only (Edit is inline now) */}
-                                            <div className="hidden group-hover:flex items-center">
-                                                <button onClick={() => requestDelete(item.id)} className="p-1 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Xóa">
-                                                    <Icons.Trash />
-                                                </button>
-                                            </div>
-
-                                            {/* Vertical divider */}
-                                            <div className="hidden group-hover:block w-px h-3 bg-slate-200 mx-1"></div>
-
-                                            {/* Copy Button */}
-                                            <button 
-                                                onClick={() => copyToClipboard(item.content, item.id)} 
-                                                className={`flex items-center justify-center w-[24px] h-[24px] sm:w-auto sm:h-auto sm:px-2 sm:py-0.5 text-[10px] font-medium rounded border transition-all ${
-                                                    copiedId === item.id 
-                                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                                                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
-                                                }`}
-                                                title="Sao chép"
-                                            >
-                                                {copiedId === item.id ? <Icons.Check /> : <Icons.Copy />} 
-                                                <span className="ml-1 hidden sm:inline">{copiedId === item.id ? 'Đã xong' : 'Copy'}</span>
-                                            </button>
-                                        </div>
-                                    </div>
+                                    <ClipboardItem 
+                                        key={item.id} 
+                                        item={item} 
+                                        handleInlineUpdate={handleInlineUpdate}
+                                        requestDelete={requestDelete}
+                                        copyToClipboard={copyToClipboard}
+                                        copiedId={copiedId}
+                                    />
                                 ))}
                             </div>
                         )}
@@ -360,7 +553,7 @@
                         )}
                     </main>
 
-                    {/* Modal Form (Only for Adding New) */}
+                    {/* Modal Form */}
                     {isModalOpen && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-[2px]">
                             <div className="bg-white rounded shadow-xl w-full max-w-lg overflow-hidden animate-fade-in-up">
@@ -375,8 +568,22 @@
                                             <input type="text" required className="w-full border-slate-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500 py-1.5 px-3 border text-sm" placeholder="Ví dụ: Link Zalo" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-medium text-slate-700 mb-1">Nội dung</label>
-                                            <textarea required rows={4} className="w-full border-slate-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500 font-mono text-sm py-1.5 px-3 border" placeholder="Nội dung cần copy..." value={formData.content} onChange={e => setFormData({...formData, content: e.target.value})} />
+                                            <div className="flex justify-between items-center mb-1">
+                                                <label className="block text-xs font-medium text-slate-700">Nội dung</label>
+                                                <button 
+                                                    type="button" 
+                                                    onMouseDown={(e) => insertLink(e, (newHtml) => setFormData({...formData, content: newHtml}))}
+                                                    className="flex items-center px-2 py-0.5 text-xs bg-slate-100 text-slate-600 rounded hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                                                >
+                                                    <Icons.Link /> <span className="ml-1">Chèn Link</span>
+                                                </button>
+                                            </div>
+                                            <RichTextEditor 
+                                                html={formData.content} 
+                                                onChange={(newHtml) => setFormData({...formData, content: newHtml})}
+                                                placeholder="Paste nội dung có định dạng vào đây..."
+                                                className="w-full border border-slate-300 rounded shadow-sm focus:border-blue-500 p-2 text-sm font-mono min-h-[80px]"
+                                            />
                                         </div>
                                         <div>
                                             <label className="block text-xs font-medium text-slate-700 mb-1">Thẻ (Tag)</label>
