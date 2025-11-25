@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kho Clipboard Compact List</title>
+    <title>Kho Clipboard - Chỉnh sửa trực tiếp</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- React & ReactDOM -->
@@ -16,13 +16,16 @@
         body {
             background-color: #f8fafc;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            font-size: 14px; /* Giảm font base */
+            font-size: 14px;
         }
         /* Custom scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Ẩn outline mặc định của input khi focus để custom bằng tailwind */
+        input:focus { outline: none; }
     </style>
 </head>
 <body>
@@ -31,7 +34,7 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
-        // --- Icons Components (Size giảm nhẹ xuống 14-16px) ---
+        // --- Icons Components ---
         const Icons = {
             Search: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>,
             Plus: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>,
@@ -47,7 +50,7 @@
             List: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
         };
 
-        const ITEMS_PER_PAGE = 20; // Tăng lên 20 item
+        const ITEMS_PER_PAGE = 20;
 
         function App() {
             // State
@@ -55,11 +58,10 @@
             const [searchQuery, setSearchQuery] = useState('');
             const [isModalOpen, setIsModalOpen] = useState(false);
             const [deleteId, setDeleteId] = useState(null);
-            const [editingItem, setEditingItem] = useState(null);
-            const [formData, setFormData] = useState({ title: '', content: '', tags: '' });
             const [copiedId, setCopiedId] = useState(null);
             const [currentPage, setCurrentPage] = useState(1);
             const [notification, setNotification] = useState(null);
+            const [formData, setFormData] = useState({ title: '', content: '', tags: '' }); // For modal new item
 
             // Load LocalStorage
             useEffect(() => {
@@ -77,10 +79,9 @@
                         'design, màu sắc, reference',
                         'email, khách hàng'
                     ];
-                    
                     const initialData = Array.from({ length: 25 }, (_, i) => ({
                         id: i, 
-                        title: `Item mẫu ${i + 1} - Dòng này để test độ dài`, 
+                        title: `Item mẫu ${i + 1}`, 
                         content: `Nội dung demo ${i + 1} cần copy nhanh`, 
                         tags: sampleTags[i % sampleTags.length], 
                         date: Date.now() 
@@ -100,20 +101,22 @@
                 setTimeout(() => setNotification(null), 3000);
             };
 
-            // CRUD
-            const handleSave = (e) => {
+            // INLINE UPDATE HANDLER
+            const handleInlineUpdate = (id, field, value) => {
+                setItems(prevItems => 
+                    prevItems.map(item => 
+                        item.id === id ? { ...item, [field]: value, date: Date.now() } : item
+                    )
+                );
+            };
+
+            // Add New Item (via Modal)
+            const handleAdd = (e) => {
                 e.preventDefault();
                 if (!formData.content.trim()) return;
-
-                if (editingItem) {
-                    const updatedItems = items.map(item => item.id === editingItem.id ? { ...item, ...formData, date: Date.now() } : item);
-                    setItems(updatedItems);
-                    showNotification('Đã cập nhật!');
-                } else {
-                    const newItem = { id: Date.now(), ...formData, date: Date.now() };
-                    setItems([newItem, ...items]);
-                    showNotification('Đã thêm mới!');
-                }
+                const newItem = { id: Date.now(), ...formData, date: Date.now() };
+                setItems([newItem, ...items]);
+                showNotification('Đã thêm mới!');
                 closeModal();
             };
 
@@ -132,7 +135,6 @@
                     showNotification('Đã sao chép!');
                     setTimeout(() => setCopiedId(null), 2000);
                 };
-
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     navigator.clipboard.writeText(text).then(handleSuccess).catch(() => fallbackCopy(text, id));
                 } else {
@@ -150,13 +152,11 @@
                     setCopiedId(id);
                     showNotification('Đã sao chép!');
                     setTimeout(() => setCopiedId(null), 2000);
-                } catch (err) {
-                    showNotification('Lỗi sao chép!', 'error');
-                }
+                } catch (err) {}
                 document.body.removeChild(textArea);
             };
 
-            // Import/Export
+            // Import/Export (Giữ nguyên)
             const exportData = () => {
                 const dataStr = JSON.stringify(items, null, 2);
                 const blob = new Blob([dataStr], { type: "application/json" });
@@ -188,18 +188,12 @@
                 };
             };
 
-            // Modal
-            const openModal = (item = null) => {
-                if (item) {
-                    setEditingItem(item);
-                    setFormData({ title: item.title, content: item.content, tags: item.tags });
-                } else {
-                    setEditingItem(null);
-                    setFormData({ title: '', content: '', tags: '' });
-                }
+            // Modal Controls
+            const openModal = () => {
+                setFormData({ title: '', content: '', tags: '' });
                 setIsModalOpen(true);
             };
-            const closeModal = () => { setIsModalOpen(false); setEditingItem(null); };
+            const closeModal = () => { setIsModalOpen(false); };
 
             // Filter & Pagination
             const filteredItems = useMemo(() => {
@@ -229,7 +223,7 @@
                         </div>
                     )}
 
-                    {/* Header - Compact */}
+                    {/* Header */}
                     <header className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm h-12">
                         <div className="max-w-5xl mx-auto px-4 h-full flex items-center justify-between gap-3">
                             <div className="flex items-center gap-2 flex-shrink-0">
@@ -245,14 +239,14 @@
                                 </div>
                                 <input
                                     type="text"
-                                    placeholder="Tìm nhanh..."
+                                    placeholder="Tìm kiếm..."
                                     className="block w-full pl-8 pr-3 py-1.5 text-sm border border-slate-300 rounded bg-slate-50 focus:bg-white focus:ring-1 focus:ring-blue-500 focus:outline-none transition-all"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
                             </div>
 
-                            <button onClick={() => openModal()} className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 shadow-sm transition-all flex-shrink-0 text-xs font-medium">
+                            <button onClick={openModal} className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 shadow-sm transition-all flex-shrink-0 text-xs font-medium">
                                 <Icons.Plus />
                                 <span className="ml-1 hidden sm:inline">Thêm</span>
                             </button>
@@ -262,9 +256,8 @@
                     {/* Body */}
                     <main className="max-w-5xl mx-auto px-4 py-4">
                         <div className="flex justify-between items-center mb-3 gap-4 text-xs">
-                            {/* Nút/Badge hiển thị số lượng */}
                             <div className="flex items-center gap-2">
-                                <div className="inline-flex items-center px-2.5 py-1 rounded-full bg-slate-200 text-slate-700 font-bold shadow-sm cursor-default select-none border border-slate-300" title="Tổng số thẻ đang hiển thị">
+                                <div className="inline-flex items-center px-2.5 py-1 rounded-full bg-slate-200 text-slate-700 font-bold shadow-sm cursor-default select-none border border-slate-300">
                                     <Icons.List />
                                     <span className="ml-1.5">{filteredItems.length}</span>
                                 </div>
@@ -287,43 +280,51 @@
                                 <p className="text-slate-400 text-xs">Chưa có dữ liệu nào.</p>
                             </div>
                         ) : (
-                            // Ultra Compact List
                             <div className="flex flex-col gap-1.5">
                                 {currentItems.map((item) => (
                                     <div key={item.id} className="bg-white rounded border border-slate-200 shadow-sm hover:border-blue-300 hover:shadow transition-all p-2 flex items-center gap-3 group h-[42px]">
                                         
-                                        {/* Left Side: Info */}
-                                        <div className="flex-1 min-w-0 flex items-center gap-3">
-                                            {/* Title */}
+                                        {/* Left Side: Inline Editable Inputs */}
+                                        <div className="flex-1 min-w-0 flex items-center gap-2">
+                                            {/* Editable Title */}
                                             <div className="w-1/4 min-w-[120px] max-w-[200px]">
-                                                 <h3 className="font-medium text-slate-800 text-xs truncate" title={item.title}>{item.title}</h3>
+                                                 <input 
+                                                    type="text" 
+                                                    className="w-full bg-transparent border-none p-0 font-medium text-slate-800 text-xs truncate focus:ring-1 focus:ring-blue-200 rounded px-1 -ml-1 transition-all"
+                                                    value={item.title}
+                                                    onChange={(e) => handleInlineUpdate(item.id, 'title', e.target.value)}
+                                                    placeholder="Nhập tiêu đề..."
+                                                 />
                                             </div>
                                             
-                                            {/* Content Preview */}
+                                            {/* Editable Content */}
                                             <div className="flex-1 min-w-0">
-                                                 <p className="text-xs text-slate-500 font-mono truncate opacity-90" title={item.content}>
-                                                    {item.content}
-                                                </p>
+                                                 <input 
+                                                    type="text" 
+                                                    className="w-full bg-transparent border-none p-0 text-xs text-slate-500 font-mono truncate focus:ring-1 focus:ring-blue-200 rounded px-1 -ml-1 transition-all"
+                                                    value={item.content}
+                                                    onChange={(e) => handleInlineUpdate(item.id, 'content', e.target.value)}
+                                                    placeholder="Nội dung..."
+                                                 />
                                             </div>
 
-                                            {/* Tags (Displayed as list) */}
-                                            <div className="hidden sm:flex items-center gap-1 shrink-0">
-                                                {item.tags && item.tags.split(',').slice(0, 3).map((tag, idx) => (
-                                                    <span key={idx} className="px-1.5 py-0.5 rounded text-[9px] uppercase font-bold bg-slate-100 text-slate-600 border border-slate-200 shrink-0 whitespace-nowrap">
-                                                        {tag.trim()}
-                                                    </span>
-                                                ))}
+                                            {/* Editable Tags */}
+                                            <div className="hidden sm:block w-[120px] shrink-0">
+                                                <input 
+                                                    type="text" 
+                                                    className="w-full bg-slate-50 border-none py-0.5 px-2 text-[10px] uppercase font-bold text-slate-600 rounded focus:ring-1 focus:ring-blue-500 placeholder:normal-case placeholder:font-normal"
+                                                    value={item.tags || ''}
+                                                    onChange={(e) => handleInlineUpdate(item.id, 'tags', e.target.value)}
+                                                    placeholder="+ Thẻ..."
+                                                />
                                             </div>
                                         </div>
 
                                         {/* Right Side: Actions */}
                                         <div className="flex items-center gap-1 shrink-0">
-                                            {/* Edit/Delete Group - Hover only */}
+                                            {/* Delete Button Only (Edit is inline now) */}
                                             <div className="hidden group-hover:flex items-center">
-                                                <button onClick={() => openModal(item)} className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Sửa">
-                                                    <Icons.Edit />
-                                                </button>
-                                                <button onClick={() => requestDelete(item.id)} className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded" title="Xóa">
+                                                <button onClick={() => requestDelete(item.id)} className="p-1 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Xóa">
                                                     <Icons.Trash />
                                                 </button>
                                             </div>
@@ -359,13 +360,13 @@
                         )}
                     </main>
 
-                    {/* Modal Form */}
+                    {/* Modal Form (Only for Adding New) */}
                     {isModalOpen && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-[2px]">
                             <div className="bg-white rounded shadow-xl w-full max-w-lg overflow-hidden animate-fade-in-up">
-                                <form onSubmit={handleSave}>
+                                <form onSubmit={handleAdd}>
                                     <div className="px-4 py-3 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                                        <h3 className="text-base font-medium text-slate-900">{editingItem ? 'Sửa' : 'Thêm Mới'}</h3>
+                                        <h3 className="text-base font-medium text-slate-900">Thêm Mới</h3>
                                         <button type="button" onClick={closeModal} className="text-slate-400 hover:text-slate-600"><Icons.X /></button>
                                     </div>
                                     <div className="p-4 space-y-3">
@@ -383,7 +384,7 @@
                                         </div>
                                     </div>
                                     <div className="bg-slate-50 px-4 py-3 flex flex-row-reverse gap-2">
-                                        <button type="submit" className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 shadow-sm text-xs font-medium">{editingItem ? 'Cập nhật' : 'Lưu lại'}</button>
+                                        <button type="submit" className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 shadow-sm text-xs font-medium">Lưu lại</button>
                                         <button type="button" onClick={closeModal} className="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 rounded hover:bg-slate-50 shadow-sm text-xs font-medium">Hủy</button>
                                     </div>
                                 </form>
